@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Điều khiển đèn qua MQTT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:Arial;text-align:center;margin-top:70px}
+    button{width:140px;height:60px;font-size:22px;margin:10px;border:0;border-radius:12px;color:#fff;cursor:pointer}
+    .on{background:#16a34a}
+    .off{background:#dc2626}
+    #st{margin-top:18px;font-size:18px}
+  </style>
+</head>
+<body>
+
+  <h2>Điều khiển đèn qua MQTT</h2>
+
+  <button class="on" onclick="sendCmd('on')">BẬT</button>
+  <button class="off" onclick="sendCmd('off')">TẮT</button>
+
+  <div id="st">Chưa kết nối...</div>
+
+  <!-- ✅ Paho MQTT JS (ĐÚNG) -->
+  <script src="https://unpkg.com/paho-mqtt@1.1.0/paho-mqtt-min.js"></script>
+
+  <script>
+    // ===== HIVE MQ CLOUD (đúng theo ảnh của bạn) =====
+    const host = "beb3a3a883cd4a39a0ba739381db1a6b.s1.eu.hivemq.cloud";
+    const port = 8884;
+    const path = "/mqtt";
+    const useTLS = true;
+
+    // ===== GIỐNG ESP32 =====
+    const username = "minhthai";
+    const password = "Conan1306@@@";
+
+    const topic = "MQTT_ESP32/LIGHT";
+    const st = document.getElementById("st");
+
+    // ===== KHỞI TẠO CLIENT (LƯU Ý CÚ PHÁP) =====
+    const clientId = "web-" + Math.random().toString(16).slice(2);
+    const client = new Paho.Client(host, Number(port), path, clientId);
+
+    client.onConnectionLost = function (responseObject) {
+      st.innerText = "Mất kết nối MQTT ❌";
+      console.log("Lost:", responseObject.errorMessage);
+    };
+
+    client.connect({
+      useSSL: useTLS,
+      userName: username,
+      password: password,
+      timeout: 10,
+      onSuccess: function () {
+        st.innerText = "Đã kết nối MQTT ✅";
+        console.log("MQTT connected");
+      },
+      onFailure: function (e) {
+        st.innerText = "Kết nối MQTT thất bại ❌";
+        console.log("Connect fail:", e.errorMessage);
+      }
+    });
+
+    function sendCmd(cmd) {
+      if (!client.isConnected()) {
+        st.innerText = "Chưa kết nối MQTT ❌";
+        return;
+      }
+      const payload = JSON.stringify({ light: cmd });
+      const msg = new Paho.Message(payload);
+      msg.destinationName = topic;
+      client.send(msg);
+      st.innerText = "Đã gửi: " + payload;
+    }
+  </script>
+
+</body>
+</html>
